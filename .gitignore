@@ -1,0 +1,21 @@
+# 1. Visual Studio'nun Arka Plan Çöpleri (Gereksiz yük)
+.vs/
+*.user
+*.db
+*.ipch
+
+# 2. Derleme (Build) Çıktıları (Megabaytlarca yer kaplayan exe ve obj dosyaları)
+Debug/
+Release/
+x64/
+x86/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.idb
+
+# 3. Kendi Yazdığın Özel Veritabanı ve Şifre Dosyaları (Asla GitHub'da olmamalı!)
+Database/
+*.dat
+UserNickname.txt
