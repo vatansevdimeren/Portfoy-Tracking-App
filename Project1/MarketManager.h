@@ -1,0 +1,8 @@
+#ifndef MARKETMANAGER_H
+#define MARKETMANAGER_H
+
+	
+
+
+
+#endif // !MARKETMANAGER_H

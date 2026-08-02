@@ -133,10 +133,12 @@
     <ClCompile Include="User.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithm.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="Cleaner.h" />
     <ClInclude Include="ConsoleColors.h" />
     <ClInclude Include="Crypto.h" />
+    <ClInclude Include="MarketManager.h" />
     <ClInclude Include="Stock.h" />
     <ClInclude Include="User.h" />
   </ItemGroup>
