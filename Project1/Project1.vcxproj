@@ -129,6 +129,7 @@
     <ClCompile Include="Cleaner.cpp" />
     <ClCompile Include="Crypto.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MarketManager.cpp" />
     <ClCompile Include="Stock.cpp" />
     <ClCompile Include="User.cpp" />
   </ItemGroup>
