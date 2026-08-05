@@ -25,6 +25,8 @@ class MarketManager {
 
 	public:
 
+		void InitCryptoMarket();
+
 		void AddAsset(AssetType Type,const std::string& Symbol, double Price);
 
 		double GetPrice(AssetType Type, const std::string Symbol);

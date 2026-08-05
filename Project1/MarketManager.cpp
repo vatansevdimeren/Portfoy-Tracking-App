@@ -1,13 +1,27 @@
 #include "MarketManager.h"
 #include <iostream>
 #include "Algorithm.h"
+#include "APIManager.h"
+#include "ConsoleColors.h"
+#include <iostream>
+#define BufferMaximumSize 100
+void MarketManager::InitCryptoMarket() {
+	std::vector<MarketAsset> CryptoAssests = APIManager::FetchCryptoData();
 
+	if (CryptoAssests.empty()) {
+		std::cerr << Colors::RED << "The size of crypto assest is zero!\nLoading Operation unsuccessfull!" << Colors::RESET << std::endl;
+		return;
+	}
+
+	MainCryptoVector = std::move(CryptoAssests);
+	Algorithm::InsertionSort(MainCryptoVector);
+}
 
 void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double Price) {
 	if (Type == AssetType::Crypto) {
 		unsigned short int BufferSize = BufferCryptoVector.size();
 
-		if (BufferSize < 100) {
+		if (BufferSize < BufferMaximumSize) {
 			BufferCryptoVector.push_back(MarketAsset(Symbol, Price));
 		}
 		else{
@@ -20,7 +34,7 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 	}
 	else if (Type == AssetType::Stock) {
 		unsigned short int BufferSize = BufferStockVector.size();
-		if (BufferSize < 100) {
+		if (BufferSize < BufferMaximumSize) {
 			BufferStockVector.push_back(MarketAsset(Symbol, Price));
 		}
 		else {
@@ -32,7 +46,7 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 		}
 	}
 	//here might be added some other parametres such as money (EURO/DOLAR/YEN,etc...)
-	//or Gold Silver Uraninum can be added.
+	//or Gold Silver Uraninum can be added.11111111
 }
 double MarketManager::GetPrice(AssetType Type, const std::string Symbol) {
 
