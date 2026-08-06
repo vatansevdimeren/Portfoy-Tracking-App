@@ -87,7 +87,7 @@ namespace Algorithm {
 	}
 
 	template <typename T>
-	int BinarySearch(const std::vector<T>& vec, T Target) {
+	long long int BinarySearch(const std::vector<T>& vec, T Target) {
 		int Max = static_cast<int>(vec.size()) - 1;
 		int Min = 0;
 
@@ -189,6 +189,42 @@ namespace Algorithm {
 			}
 			vec[j + 1] = key;
 		}
+	}
+
+	template<typename T>
+	void Merge(std::vector<T>& LeftVector, std::vector<T>& RightVector, std::vector<T>& MainVector) {
+		size_t LeftPointer = 0;
+		size_t RightPointer = 0;
+		size_t MainPointer = 0;
+
+		while (LeftPointer < LeftVector.size() && RightPointer < RightVector.size()) {
+			if (LeftVector[LeftPointer] < RightVector[RightPointer]) {
+				MainVector[MainPointer++] = LeftVector[LeftPointer++];
+			}
+			else {
+				MainVector[MainPointer++] = RightVector[RightPointer++];
+			}
+		}
+		while (LeftPointer < LeftVector.size()) {
+			MainVector[MainPointer++] = LeftVector[LeftPointer++];
+		}
+		while (RightPointer < RightVector.size()) {
+			MainVector[MainPointer++] = RightVector[RightPointer++];
+		}
+	}
+
+	template<typename T>
+	void MergeSort(std::vector<T>& Vector) {
+		if (Vector.size() <= 1) { return; }
+		size_t Mid = Vector.size() / 2;
+
+		std::vector<T> LeftVector(Vector.begin(), Vector.begin() + Mid);
+		std::vector<T> RightVector(Vector.begin() + Mid, Vector.end());
+
+		MergeSort(LeftVector);
+		MergeSort(RightVector);
+
+		Merge(LeftVector, RightVector, Vector);
 	}
 }
 

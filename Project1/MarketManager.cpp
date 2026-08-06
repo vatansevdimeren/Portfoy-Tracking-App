@@ -14,7 +14,7 @@ void MarketManager::InitCryptoMarket() {
 	}
 
 	MainCryptoVector = std::move(CryptoAssests);
-	Algorithm::InsertionSort(MainCryptoVector);
+	Algorithm::MergeSort(CryptoAssests);
 }
 
 void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double Price) {
@@ -29,6 +29,15 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 			Algorithm::InsertionSort(BufferCryptoVector);
 			
 			//Then it is gonne be merged by the merge function two sorted vectors will be sorted...
+
+			size_t TotalSize = BufferCryptoVector.size() + MainCryptoVector.size();
+
+			std::vector<MarketAsset> NewVector(TotalSize);
+
+			Algorithm::Merge(MainCryptoVector, BufferCryptoVector, NewVector);
+
+			MainCryptoVector = std::move(NewVector);
+			
 			BufferCryptoVector.clear();
 		}
 	}
@@ -42,6 +51,16 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 			Algorithm::InsertionSort(BufferStockVector);
 
 			//Merge sort here too
+
+			size_t TotalSize = MainStockVector.size() + BufferStockVector.size();
+
+			std::vector<MarketAsset> NewVector(TotalSize);
+			
+
+			Algorithm::Merge(MainStockVector, BufferStockVector, NewVector);
+
+			MainStockVector = std::move(NewVector);
+
 			BufferStockVector.clear();
 		}
 	}
@@ -49,6 +68,54 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 	//or Gold Silver Uraninum can be added.11111111
 }
 double MarketManager::GetPrice(AssetType Type, const std::string Symbol) {
+	//In this function, The data will be searched in the main vector by using Binary search because the main vector everytime will be sorted.
+	//if it is not found in the main vector stock or crypto, it is gonna change the direction and it's gonna start to search on BufferVector,
+	//BufferVector will be searched by using linear search algorithm because its size maximum can be 100 which is pre defined as a BufferMaximumSize
+	//if it is not found in the two of them ,then, the user will encounter a error message that is gonna be "Ýt's not in our databases..."
+
+	if (Type == AssetType::Crypto) {
+		long long int  Index = -1;
+
+		MarketAsset SymbolicAssest{ Symbol,1 };
+
+		Index = Algorithm::BinarySearch(MainCryptoVector, SymbolicAssest);
+
+		if (Index != -1) {
+			return MainCryptoVector[Index].CurrentPrice;
+		}
+
+		//if it is not found in the main vector of crypto then search by the linear one.
+
+		Index = Algorithm::LinearSearch(BufferCryptoVector, SymbolicAssest);
+
+		if (Index != -1) {
+			return BufferCryptoVector[Index].CurrentPrice;
+		}
+
+		std::cout << Colors::RED << "The assest : " << Symbol << " is not our data bases!" << Colors::RESET << std::endl;
+		return -1;
+		
+	}
+	else if (Type == AssetType::Stock) {
+		long long int Index = -1;
+
+		MarketAsset SymbolicAsset{ Symbol,1 };
+
+		Index = Algorithm::BinarySearch(MainStockVector, SymbolicAsset);
+
+		if (Index != -1) {
+			return MainStockVector[Index].CurrentPrice;
+		}
+
+		Index = Algorithm::LinearSearch(BufferStockVector, SymbolicAsset);
+
+		if (Index != -1) {
+			return BufferStockVector[Index].CurrentPrice;
+		}
+
+		std::cout << Colors::RED << "The assest : " << Symbol << " is not our data bases!" << Colors::RESET << std::endl;
+		return -1;
+	}
 
 }
 void MarketManager::TrackAsset(AssetType Type, const std::string Symbol) {
