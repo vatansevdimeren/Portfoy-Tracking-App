@@ -3,6 +3,12 @@
 #include "Cleaner.h"
 #include <string>
 
+struct HistoricalData {
+	std::string TimeFrame="";
+	double ClosedPrice = 0.0;
+
+};
+
 class Asset {
 protected:
 	std::string Symbol = "";

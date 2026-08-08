@@ -49,3 +49,30 @@ std::vector<MarketAsset> APIManager::FetchCryptoData() {
 	return FetchedData;
 
 }
+
+HistoricalData APIManager::FetchHistoricalData(const std::string& Symbol, const std::string& Interval) {
+
+	HistoricalData ResultData;
+
+	ResultData.ClosedPrice = 0;
+	ResultData.TimeFrame = Interval;
+	
+	cpr::Response CprResponse = cpr::Get(cpr::Url{ "https://api.binance.com/api/v3/klines" },
+		cpr::Parameters{
+			{"symbol", Symbol},
+			{"interval", Interval},
+			{"limit", "1"}//I limited the responses.
+		});
+
+	if (CprResponse.status_code != 200) {
+		return ResultData;//if connection has wrong or smt happened then return to ResultData.
+	}
+	nlohmann::json ParsedData = nlohmann::json::parse(CprResponse.text);
+
+	if (ParsedData.empty()) {
+		return ResultData; //If There is not the coin which we defined, then return it itself as a 0 ClosedPrice.
+	}
+	std::string ClosePriceStr = ParsedData[0][4];//everytime it stays on the fourth index of the array
+	ResultData.ClosedPrice = std::stod(ClosePriceStr);
+
+}

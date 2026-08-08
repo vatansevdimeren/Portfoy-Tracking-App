@@ -5,6 +5,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
+struct CashBalance {
+	std::string CurrencyCode = "";
+	double Amount = 0;
+};
 class User {
 	private:
 		std::string NickName = "";
@@ -16,6 +20,7 @@ class User {
 
 		std::vector<Crypto> CryptoWallet;
 		std::vector<Stock> StockWallet;
+		std::vector<CashBalance> CashWallet;
 	public:
 		
 		User(std::string Username, unsigned long long int UserHash);

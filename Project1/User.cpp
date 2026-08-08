@@ -3,7 +3,7 @@
 #include <fstream>
 #include "Cleaner.h"
 #include <filesystem>
-
+#include <stdexcept>
 //-3 Error code is UNSUCCESFULL READING OR WRITING OPERATIN in fstream lib.
 //It occurs when they dont work.
 
@@ -66,7 +66,7 @@ void User::SignIn() {
 	short int Counter = 0;
 	std::string UserPassword = "";
 	while (true) {
-		if (Counter > 3) { std::cout << Colors::RED << "You have tried so many times please try again!" << Colors::RESET << std::endl; }
+		if (Counter > 3) { std::cout << Colors::RED << "You have tried so many times please try again!" << Colors::RESET << std::endl; return; }
 		std::cout << Colors::BG_RED << "Hint 1 : Your password must be longer than eight characters.\n";
 		std::cout << "Hint 2 : Your password must have at least one bigger and one smaller character.\n" << Colors::RESET << std::endl;
 
@@ -132,7 +132,40 @@ void User::SignIn() {
 
 	BinaryWrite.close();
 
+	std::string CurrencType;
+	std::string AmountAsString;
+	double InitialBalance=0.0;
+
+	std::cout <<Colors::BLUE <<"Please enter which type of money do you have (TRY,USD,EUR...)";
+	std::getline(std::cin, CurrencType);
+
+	std::cout << "Please enter the Amount of " << CurrencType << " : ";
+	std::getline(std::cin, AmountAsString);
+	std::cout << Colors::RESET;
+
+	try {
+		InitialBalance = std::stod(AmountAsString);
+	}
+	catch (const std::invalid_argument& e) {
+        std::cout << Colors::RED << "[WARNING] You entered letters instead of numbers! Balance set to 0.0." << Colors::RESET << "\n";
+        InitialBalance = 0.0;
+    } 
+    catch (const std::out_of_range& e) {
+        std::cout << Colors::RED << "[WARNING] Number is too large! Balance set to 0.0." << Colors::RESET << "\n";
+        InitialBalance = 0.0;
+    }
+	std::cout << Colors::GREEN << "Confirmed Balance: " << InitialBalance << Colors::RESET << "\n";
 	std::cout << Colors::GREEN << "The user is created succesfully!!!" << Colors::RESET << std::endl;
+
+	CashBalance NewCash;
+	NewCash.CurrencyCode = CurrencType;
+	NewCash.Amount = InitialBalance;
+
+	CurrentUser.CashWallet.push_back(NewCash);
+
+	CurrentUser.SaveUser("Cash");
+
+	
 
 }
 User* User::LogIn() {
@@ -245,11 +278,26 @@ void User::SaveUser(std::string Tag) {
 			Write.write((char*)&ipo, sizeof(ipo));
 		}
 	}
+	else if (Tag == "Cash") {
+		for (size_t i = 0; i < this->CashWallet.size(); i++) {
+
+			// Para biriminin uzunlugunu ve kendisini yaz (Orn: "TRY")
+			std::string code = CashWallet[i].CurrencyCode;
+			size_t codeLen = code.size();
+			Write.write((char*)&codeLen, sizeof(codeLen));
+			Write.write(code.c_str(), codeLen);
+
+			// Bakiye miktarini yaz (Orn: 10000.50)
+			double amt = CashWallet[i].Amount;
+			Write.write((char*)&amt, sizeof(amt));
+		}
+	}
+
 
 	Write.close();
 }
 void User::LoadUser(std::string Tag) {
-	std::string FilePath = "Database/" + this->NickName + "/" + Tag + ".txt";
+	std::string FilePath = "Database/" + this->NickName + "/" + Tag + ".dat";
 
 
 	std::fstream Read(FilePath, std::ios::in);
@@ -322,6 +370,26 @@ void User::LoadUser(std::string Tag) {
 
 			Stock loadedStock(sym, amt, avg, div, broker, ipo);
 			this->StockWallet.push_back(loadedStock);
+		}
+	}
+	else if (Tag == "Cash") {
+		size_t codeLen;
+		while (Read.read((char*)&codeLen, sizeof(codeLen))) {
+
+			
+			std::string code;
+			code.resize(codeLen);
+			Read.read(&code[0], codeLen);
+
+			
+			double amt;
+			Read.read((char*)&amt, sizeof(amt));
+
+			CashBalance loadedCash;
+			loadedCash.CurrencyCode = code;
+			loadedCash.Amount = amt;
+
+			this->CashWallet.push_back(loadedCash);
 		}
 	}
 
