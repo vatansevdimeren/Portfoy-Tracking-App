@@ -13,7 +13,7 @@ class User {
 	private:
 		std::string NickName = "";
 		unsigned long long int PasswordHash = 5381;
-		
+		std::string Currency = "USD";
 		//The Function provides to you to calculate its Hash by using DJB2 algorithm.
 		//Dont forget The number that calculated is on base 10
 		static unsigned long long int DJB2(std::string CurrentPassword);
@@ -28,10 +28,17 @@ class User {
 
 		std::string GetNickname();
 		unsigned long long int GetPasswordHash();
+		std::string GetCurrency();
+
+
+		//For vector's get functions....
+		std::vector<Crypto>& GetCryptoWallet();
+		std::vector<Stock>& GetStockWallet();
+		std::vector<CashBalance>& GetCashWallet();
 
 		void SetNickname(std::string NewNickname);
 		void SetPasswordHash(unsigned long long int NewHash);
-
+		void SetCurrency(std::string NewCurrency);
 		static void SignIn();
 
 		static User* LogIn();

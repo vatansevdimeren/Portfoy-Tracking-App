@@ -27,9 +27,13 @@ unsigned long long int User::DJB2(std::string CurrentPassword) {
 	}
 	return Hash;
 }
+std::string User::GetCurrency() { return this->Currency; }
 std::string User::GetNickname() {
 	return this->NickName;
 }
+std::vector<Crypto>& User::GetCryptoWallet() { return this->CryptoWallet; }
+std::vector<Stock>& User::GetStockWallet() { return this->StockWallet; }
+std::vector<CashBalance>& User::GetCashWallet() { return this->CashWallet; }
 unsigned long long int User::GetPasswordHash() {
 	return this->PasswordHash;
 }
@@ -38,6 +42,9 @@ void User::SetNickname(std::string NewNickname) {
 }
 void User::SetPasswordHash(unsigned long long int NewHash) {
 	this->PasswordHash = NewHash;
+}
+void User::SetCurrency(std::string NewCurrency) {
+	this->Currency = NewCurrency;
 }
 void User::SignIn() {
 	std::string UserNickname;
@@ -50,17 +57,17 @@ void User::SignIn() {
 
 	std::fstream Read("UserNickname.txt", std::ios::in);
 
-	if (!Read.is_open()) {
-		std::cerr << Colors::RED << "The UserNickname.txt file was not oppened!!!" << Colors::RESET << std::endl;
-		exit(-3);
-	}
-	std::string TempUserNameInfile = "";
-	while (Read >> TempUserNameInfile) {
-		if (UserNickname == TempUserNameInfile) 
-		{
-			std::cerr << Colors::RED << "The username is taken please try again !" << Colors::RESET << std::endl;
-			return SignIn();
+	if (Read.is_open()) {
+		std::string TempUserNameInfile = "";
+		while (Read >> TempUserNameInfile) {
+			if (UserNickname == TempUserNameInfile)
+			{
+				std::cerr << Colors::RED << "The username is taken please try again !" << Colors::RESET << std::endl;
+				Read.close();
+				return SignIn();
+			}
 		}
+		Read.close();
 	}
 	Read.close();
 	short int Counter = 0;
@@ -154,6 +161,13 @@ void User::SignIn() {
         std::cout << Colors::RED << "[WARNING] Number is too large! Balance set to 0.0." << Colors::RESET << "\n";
         InitialBalance = 0.0;
     }
+	std::string UserCurrency = "";
+	std::cout << Colors::BLUE << "Which currency do you want to see your portfolio in? (USD, TRY, EUR) : " << Colors::RESET;
+	std::getline(std::cin, UserCurrency);
+
+	CurrentUser.SetCurrency(UserCurrency);
+	CurrentUser.SaveUser("Settings");
+
 	std::cout << Colors::GREEN << "Confirmed Balance: " << InitialBalance << Colors::RESET << "\n";
 	std::cout << Colors::GREEN << "The user is created succesfully!!!" << Colors::RESET << std::endl;
 
@@ -292,6 +306,11 @@ void User::SaveUser(std::string Tag) {
 			Write.write((char*)&amt, sizeof(amt));
 		}
 	}
+	else if (Tag == "Settings") {
+		size_t LengthOftheCurrency = this->Currency.length();
+		Write.write((char*)&LengthOftheCurrency, sizeof(LengthOftheCurrency));
+		Write.write(this->Currency.c_str(), LengthOftheCurrency);
+	}
 
 
 	Write.close();
@@ -303,7 +322,6 @@ void User::LoadUser(std::string Tag) {
 	std::fstream Read(FilePath, std::ios::in);
 
 	if (!Read.is_open()) {
-		std::cerr << Colors::RED << "The " << FilePath << " file is not oppened!!!" << Colors::RESET << std::endl;
 		return;//Void Return when the reading operaion doesnt work.
 	}
 
@@ -390,6 +408,17 @@ void User::LoadUser(std::string Tag) {
 			loadedCash.Amount = amt;
 
 			this->CashWallet.push_back(loadedCash);
+		}
+	}
+	else if (Tag == "Settings") {
+		size_t CurrencyLength = 0;
+		while (Read.read((char*)&CurrencyLength, sizeof(CurrencyLength))) {
+			std::string CurrencyAsString="";
+			CurrencyAsString.resize(CurrencyLength);
+			Read.read(&CurrencyAsString[0], CurrencyLength);
+
+			this->SetCurrency(CurrencyAsString);
+
 		}
 	}
 

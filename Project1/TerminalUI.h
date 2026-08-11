@@ -15,7 +15,15 @@ class TerminalUI {
 
 		std::string ShowFirstTerminalMenu();
 
+
+		void ShowAllPortfolio();
 		void Start();
+
+		void DepositAndWithdrawMenu();
+
+		void ManageAssetsMenu();
+
+		void TradeMarketMenu();
 };
 
 

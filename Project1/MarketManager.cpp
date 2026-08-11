@@ -50,7 +50,7 @@ void MarketManager::AddAsset(AssetType Type, const std::string& Symbol, double P
 			BufferStockVector.push_back(MarketAsset(Symbol, Price));
 			Algorithm::InsertionSort(BufferStockVector);
 
-			//Merge sort here too
+			//Merge  here too
 
 			size_t TotalSize = MainStockVector.size() + BufferStockVector.size();
 

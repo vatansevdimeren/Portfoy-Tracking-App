@@ -1,18 +1,16 @@
-#include "ConsoleColors.h"
+#include "TerminalUI.h"
+#include "MarketManager.h"
 #include <iostream>
-#include "Algorithm.h"
-
-
-
 
 int main() {
+    // 1. Piyasa yoneticisini (Arka plan motorunu) baslat
+    MarketManager CoreMarket;
 
-	
-	std::cout << Colors::BG_GREEN << "hello \n" << Colors::RESET << std::endl;
-	std::cout << Colors::BG_RED << "World \n" << Colors::RESET << std::endl;
-	std::cout << Colors::RED << "Test \n" << Colors::RESET << std::endl;
-	std::cout << Colors::BG_GREEN << "Amcýk " << Colors::RESET << std::endl;
+    // 2. Arayuzu (Terminali) baslat. Baslangicta giris yapmis kullanici yok (nullptr)
+    TerminalUI TexTerminal(CoreMarket, nullptr);
 
-	
-	return 0;
+    // 3. Kontagi cevir ve Terminali atesle!
+    TexTerminal.Start();
+
+    return 0;
 }

@@ -76,3 +76,75 @@ HistoricalData APIManager::FetchHistoricalData(const std::string& Symbol, const 
 	ResultData.ClosedPrice = std::stod(ClosePriceStr);
 
 }
+double APIManager::FetchCurrentPrice(const std::string& Symbol) {
+	std::string URL = "https://api.binance.com/api/v3/ticker/price?symbol=" + Symbol;
+
+	cpr::Response CprResponse = cpr::Get(cpr::Url{ URL });
+
+	if (CprResponse.status_code != 200) {
+		return 0.0;
+	}
+	try {
+	nlohmann::json ParsedData = nlohmann::json::parse(CprResponse.text);
+
+	
+	std::string PriceAsAString = ParsedData["price"];
+
+	return std::stod(PriceAsAString);
+	}
+	catch (...) {
+		return 0.0;
+	}
+}
+double APIManager::GetFiatMultiplierToUSD(const std::string& CurrencyCode) {
+	if (CurrencyCode == "TRY") {
+		return 1.0/FetchCurrentPrice("USDTTRY");
+	}
+	else if (CurrencyCode == "EUR") {
+		return 1.0/FetchCurrentPrice("EURUSDT");
+	}
+	else if(CurrencyCode == "USD"){
+		return 1.0;
+	}
+	else {
+		std::cerr << Colors::RED << "INVALID INPUT!" << Colors::RESET << std::endl;
+		return 0.0;
+	}
+}
+std::vector<MarketAsset> APIManager::FetchWalletCryptoData(const std::vector<std::string>& Symbols) {
+	std::vector<MarketAsset> MarketData;
+
+	if (Symbols.empty()) { return MarketData; }
+
+
+	//Burada Türkçe acýklama yapýcam burayý direkt AI yaptý burada yaptýðý þey ise Binance APIsýna uygun formata getirmek Atacaðýmýz reqquesti.
+	//in Here, we are redesign the all symbols and we create a string that Binance API can understand what we want.
+	std::string SymbolsParam = "[";
+	for (size_t i = 0; i < Symbols.size(); i++) {
+		SymbolsParam += "\"" + Symbols[i] + "\"";
+		if (i != Symbols.size() - 1) {
+			SymbolsParam += ","; 
+		}
+	}
+	SymbolsParam += "]";
+	std::string URL = "https://api.binance.com/api/v3/ticker/price?symbols=" + SymbolsParam;
+
+	cpr::Response CprResponse = cpr::Get(cpr::Url{ URL });
+
+	if (CprResponse.status_code != 200) { return MarketData; }
+	try {
+		nlohmann::json ParsedData = nlohmann::json::parse(CprResponse.text);
+
+		for (size_t i = 0; i < ParsedData.size(); i++) {
+			MarketAsset asset;
+			asset.Symbol = ParsedData[i]["symbol"];
+			asset.CurrentPrice = std::stod(ParsedData[i]["price"].get<std::string>());
+
+			MarketData.push_back(asset);
+		}
+	}
+	catch (...) {
+	}
+	return MarketData;
+
+}
