@@ -24,6 +24,8 @@ class TerminalUI {
 		void ManageAssetsMenu();
 
 		void TradeMarketMenu();
+
+		void SettingsMenu();
 };
 
 

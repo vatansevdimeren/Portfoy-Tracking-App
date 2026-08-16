@@ -80,9 +80,9 @@ void TerminalUI::Start() {
             std::cout << Colors::GREEN << "[2] " << Colors::RESET << "Deposit / Withdraw Cash\n";
             std::cout << Colors::GREEN << "[3] " << Colors::RESET << "Add Asset Manually\n";
             std::cout << Colors::GREEN << "[4] " << Colors::RESET << "Trade Market \n";
-            std::cout << Colors::RED << "[5] " << Colors::RESET << "Log Out & Save\n";
+            std::cout << Colors::GREEN << "[5] " << Colors::RESET << "Settings (Change Base Currency)\n";
+            std::cout << Colors::RED << "[6] " << Colors::RESET << "Log Out & Save\n";
             std::cout << Colors::CYAN << "\nSelect an option: " << Colors::RESET;
-
             std::string LoggedInChoice = "";
             std::getline(std::cin, LoggedInChoice);
 
@@ -100,6 +100,10 @@ void TerminalUI::Start() {
                 Pause();
             }
             else if (LoggedInChoice == "5") {
+                SettingsMenu();
+                Pause();
+            }
+            else if (LoggedInChoice == "6") {
                 std::cout << Colors::YELLOW << "\nSaving and logging out...\n" << Colors::RESET;
                
                 CurrentUser->SaveUser("Crypto");
@@ -122,29 +126,47 @@ void TerminalUI::Start() {
 void TerminalUI::ShowAllPortfolio() {
     APIManager API;
 
-    std::vector<std::string> symbols;
+    std::vector<std::string> cryptoSymbols;
     for (size_t i = 0; i < CurrentUser->GetCryptoWallet().size(); i++) {
-        symbols.push_back(CurrentUser->GetCryptoWallet()[i].GetSymbol() + "USDT");
+        cryptoSymbols.push_back(CurrentUser->GetCryptoWallet()[i].GetSymbol() + "USDT");
     }
+
+    std::vector<std::string> stockSymbols;
+    for (size_t i = 0; i < CurrentUser->GetStockWallet().size(); i++) {
+        stockSymbols.push_back(CurrentUser->GetStockWallet()[i].GetSymbol());
+    }
+    CleanScreen();
+    std::cout << Colors::CYAN << "========================================================================================\n" << Colors::RESET;
+    std::cout << Colors::YELLOW << "                             TEX LIVE DASHBOARD - LOADING...                            \n" << Colors::RESET;
+    std::cout << Colors::CYAN << "========================================================================================\n" << Colors::RESET;
+    std::cout << Colors::BLUE << "\n[*] Connecting to Binance & Yahoo Finance API...\n";
+    std::cout << "[*] Fetching live market data for your assets. Please wait a moment...\n" << Colors::RESET;
 
     while (!_kbhit()) {
         std::ostringstream ScreenBuffer;
 
-      
-        std::vector<MarketAsset> LivePrices = API.FetchWalletCryptoData(symbols);
+        std::string UserCurrency = CurrentUser->GetCurrency();
+        double DisplayMultiplier = 1.0;
 
-       
+        if (UserCurrency != "USD") {
+            double toUsd = API.GetFiatMultiplierToUSD(UserCurrency);
+            if (toUsd > 0) {
+                DisplayMultiplier = 1.0 / toUsd;
+            }
+        }
+        std::vector<MarketAsset> LiveCryptoPrices = API.FetchWalletCryptoData(cryptoSymbols);
+        std::vector<MarketAsset> LiveStockPrices = API.FetchWalletStockData(stockSymbols);
         ScreenBuffer << Colors::CYAN << "========================================================================================\n" << Colors::RESET;
         ScreenBuffer << Colors::YELLOW << "                                TEX LIVE DASHBOARD                                      \n" << Colors::RESET;
         ScreenBuffer << Colors::CYAN << "========================================================================================\n" << Colors::RESET;
-        ScreenBuffer << Colors::MAGENTA << " Base Currency: USD ($)\n\n" << Colors::RESET;
+        ScreenBuffer << Colors::MAGENTA << " Base Currency: " << UserCurrency << " | Live Refresh: 3s\n\n" << Colors::RESET;
 
         ScreenBuffer << Colors::BLUE
             << std::left << std::setw(15) << "ASSET"
             << std::setw(15) << "AMOUNT"
-            << std::setw(20) << "AVG PRICE ($)"
-            << std::setw(20) << "LIVE PRICE ($)"
-            << std::setw(20) << "TOTAL VALUE ($)"
+            << std::setw(20) << "AVG PRICE"
+            << std::setw(20) << "LIVE PRICE"
+            << std::setw(20) << "TOTAL VALUE"
             << "PnL (%)" << "\n" << Colors::RESET;
 
         ScreenBuffer << "----------------------------------------------------------------------------------------------------\n";
@@ -155,52 +177,96 @@ void TerminalUI::ShowAllPortfolio() {
         for (size_t i = 0; i < CurrentUser->GetCryptoWallet().size(); i++) {
             std::string currentSymbol = CurrentUser->GetCryptoWallet()[i].GetSymbol();
             double amount = CurrentUser->GetCryptoWallet()[i].GetAmount();
-            double avgPrice = CurrentUser->GetCryptoWallet()[i].GetAvaragePrice();
+            double avgPriceUSD = CurrentUser->GetCryptoWallet()[i].GetAvaragePrice();
 
-            double livePrice = 0.0;
+            double livePriceUSD = 0.0;
             std::string searchSymbol = currentSymbol + "USDT";
 
-            for (size_t j = 0; j < LivePrices.size(); j++) {
-                if (LivePrices[j].Symbol == searchSymbol) {
-                    livePrice = LivePrices[j].CurrentPrice;
+            for (size_t j = 0; j < LiveCryptoPrices.size(); j++) {
+                if (LiveCryptoPrices[j].Symbol == searchSymbol) {
+                    livePriceUSD = LiveCryptoPrices[j].CurrentPrice;
                     break;
                 }
             }
 
-            double totalValue = amount * livePrice;
-            double totalCost = amount * avgPrice;
+            double displayLivePrice = livePriceUSD * DisplayMultiplier;
+            double displayAvgPrice = avgPriceUSD * DisplayMultiplier;
 
+            double totalValue = amount * displayLivePrice;
+            double totalCost = amount * displayAvgPrice;
             TotalPortfolioValue += totalValue;
             TotalPortfolioCost += totalCost;
 
             double pnl = 0.0;
-            if (avgPrice > 0 && livePrice > 0) {
-                pnl = ((livePrice - avgPrice) / avgPrice) * 100.0;
+            if (displayAvgPrice > 0 && displayLivePrice > 0) {
+                pnl = ((displayLivePrice - displayAvgPrice) / displayAvgPrice) * 100.0;
             }
-
             std::string PnLColor = (pnl >= 0) ? Colors::GREEN : Colors::RED;
 
             ScreenBuffer << PnLColor
-                << std::left << std::setw(15) << currentSymbol
+                << std::left << std::setw(15) << ("(C) " + currentSymbol)
                 << std::setw(15) << std::fixed << std::setprecision(4) << amount
-                << std::setw(20) << std::fixed << std::setprecision(2) << avgPrice
-                << std::setw(20) << livePrice
+                << std::setw(20) << std::fixed << std::setprecision(2) << displayAvgPrice
+                << std::setw(20) << displayLivePrice
+                << std::setw(20) << totalValue
+                << pnl << "\n" << Colors::RESET;
+        }
+        for (size_t i = 0; i < CurrentUser->GetStockWallet().size(); i++) {
+            std::string currentSymbol = CurrentUser->GetStockWallet()[i].GetSymbol();
+            double amount = CurrentUser->GetStockWallet()[i].GetAmount();
+            double avgPriceUSD = CurrentUser->GetStockWallet()[i].GetAvaragePrice();
+
+            double livePriceRaw = 0.0;
+
+            for (size_t j = 0; j < LiveStockPrices.size(); j++) {
+                if (LiveStockPrices[j].Symbol == currentSymbol) {
+                    livePriceRaw = LiveStockPrices[j].CurrentPrice;
+                    break;
+                }
+            }
+
+            double livePriceUSD = livePriceRaw;
+
+            if (currentSymbol.find(".IS") != std::string::npos && livePriceRaw > 0) {
+                double TryToUsdMultiplier = API.GetFiatMultiplierToUSD("TRY");
+                livePriceUSD = livePriceRaw * TryToUsdMultiplier;
+            }
+
+            double displayLivePrice = livePriceUSD * DisplayMultiplier;
+            double displayAvgPrice = avgPriceUSD * DisplayMultiplier;
+
+            double totalValue = amount * displayLivePrice;
+            double totalCost = amount * displayAvgPrice;
+            TotalPortfolioValue += totalValue;
+            TotalPortfolioCost += totalCost;
+
+            double pnl = 0.0;
+            if (displayAvgPrice > 0 && displayLivePrice > 0) {
+                pnl = ((displayLivePrice - displayAvgPrice) / displayAvgPrice) * 100.0;
+            }
+            std::string PnLColor = (pnl >= 0) ? Colors::GREEN : Colors::RED;
+
+            ScreenBuffer << PnLColor
+                << std::left << std::setw(15) << ("(S) " + currentSymbol)
+                << std::setw(15) << std::fixed << std::setprecision(4) << amount
+                << std::setw(20) << std::fixed << std::setprecision(2) << displayAvgPrice
+                << std::setw(20) << displayLivePrice
                 << std::setw(20) << totalValue
                 << pnl << "\n" << Colors::RESET;
         }
 
         ScreenBuffer << "----------------------------------------------------------------------------------------------------\n";
-        ScreenBuffer << Colors::YELLOW << "TOTAL COST: " << std::fixed << std::setprecision(2) << TotalPortfolioCost << " $   |   "
-            << "CURRENT VALUE: " << TotalPortfolioValue << " $\n" << Colors::RESET;
+        ScreenBuffer << Colors::YELLOW << "TOTAL COST: " << std::fixed << std::setprecision(2) << TotalPortfolioCost << " " << UserCurrency << "   |   "
+            << "CURRENT VALUE: " << TotalPortfolioValue << " " << UserCurrency << "\n" << Colors::RESET;
 
         ScreenBuffer << "To return main menu " << Colors::RED << "PRESS ANY KEY." << Colors::RESET << "\n";
+
         CleanScreen();
         std::cout << ScreenBuffer.str();
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(3));
     }
-    _getch();//this function gets the hitten key when u stop to seing your portofilo.we need to delete it because 
-    //if it is not deleted it is gonna make buffer problems cuz it stays on there.
+    _getch();
 }
 void TerminalUI::DepositAndWithdrawMenu() {
     CleanScreen();
@@ -321,7 +387,6 @@ void TerminalUI::ManageAssetsMenu() {
         return ManageAssetsMenu();
     }
 
-    // Varlýk türünü seçtiriyoruz (Crypto mu Stock mu?)
     std::cout << Colors::BLUE << "Select Asset Type - [1] Crypto, [2] Stock: " << Colors::RESET;
     std::string TypeChoice = "";
     std::getline(std::cin, TypeChoice);
@@ -334,23 +399,50 @@ void TerminalUI::ManageAssetsMenu() {
 
     bool IsCrypto = (TypeChoice == "1");
 
-    // --- SEÇENEK 1: EKLEME VEYA GÜNCELLEME (ADD / UPDATE) ---
     if (Choice == "1") {
         std::string Symbol, AmountStr, PriceStr;
 
         std::cout << Colors::BLUE << "Enter Asset Symbol (e.g., BTC, AAPL): " << Colors::RESET;
         std::getline(std::cin, Symbol);
 
+        if (!IsCrypto) {
+            std::string ValidatedSymbol = Market.GetApiSymbol(Symbol);
+            if (ValidatedSymbol == "") {
+                Pause();
+                return;
+            }
+            Symbol = ValidatedSymbol;
+        }
+        bool isBist = false;
+        if (!IsCrypto && Symbol.find(".IS") != std::string::npos) {
+            isBist = true;
+        }
+
         std::cout << Colors::BLUE << "Enter Amount: " << Colors::RESET;
         std::getline(std::cin, AmountStr);
 
-        std::cout << Colors::BLUE << "Enter Average Cost (USD): " << Colors::RESET;
+        if (isBist) {
+            std::cout << Colors::BLUE << "Enter Average Cost (in TRY): " << Colors::RESET;
+        }
+        else {
+            std::cout << Colors::BLUE << "Enter Average Cost (in USD): " << Colors::RESET;
+        }
         std::getline(std::cin, PriceStr);
 
         double Amount = 0.0, AvgPrice = 0.0;
         try {
             Amount = std::stod(AmountStr);
-            AvgPrice = std::stod(PriceStr);
+            double RawPrice = std::stod(PriceStr);
+            if (isBist) {
+                APIManager API;
+                double TryToUsdMultiplier = API.GetFiatMultiplierToUSD("TRY");
+                AvgPrice = RawPrice * TryToUsdMultiplier; 
+                std::cout << Colors::YELLOW << "[INFO] " << RawPrice << " TRY dynamically converted to "
+                    << AvgPrice << " USD for internal database storage.\n" << Colors::RESET;
+            }
+            else {
+                AvgPrice = RawPrice;
+            }
         }
         catch (...) {
             std::cout << Colors::RED << "Invalid number format entered!" << Colors::RESET << "\n";
@@ -518,6 +610,7 @@ void TerminalUI::TradeMarketMenu() {
     bool IsCrypto = (TypeChoice == "1");
     APIManager API;
 
+    // --- SATIN ALMA (BUY) ÝÞLEMÝ ---
     if (Choice == "1") {
         std::string BaseFiat, TargetAsset, SpendAmountStr;
 
@@ -541,11 +634,26 @@ void TerminalUI::TradeMarketMenu() {
         std::cout << Colors::BLUE << "Enter the symbol of the asset you want to buy (e.g., BTC or AAPL): " << Colors::RESET;
         std::getline(std::cin, TargetAsset);
 
-        std::string PairSymbol = TargetAsset + BaseFiat;
-        double LivePrice = API.FetchCurrentPrice(PairSymbol);
+        if (!IsCrypto) {
+            std::string ValidatedTarget = Market.GetApiSymbol(TargetAsset);
+            if (ValidatedTarget == "") {
+                Pause();
+                return;
+            }
+            TargetAsset = ValidatedTarget; 
+        }
+
+        double LivePrice = 0.0;
+        if (IsCrypto) {
+            std::string PairSymbol = TargetAsset + BaseFiat;
+            LivePrice = API.FetchCryptoPrice(PairSymbol);
+        }
+        else {
+            LivePrice = API.FetchStockPrice(TargetAsset);
+        }
 
         if (LivePrice <= 0) {
-            std::cout << Colors::YELLOW << "\n[INFO] API could not fetch live price for " << PairSymbol << "." << Colors::RESET << "\n";
+            std::cout << Colors::YELLOW << "\n[INFO] API could not fetch live price." << Colors::RESET << "\n";
             std::cout << Colors::BLUE << "Please enter the current market price manually (in " << BaseFiat << "): " << Colors::RESET;
             std::string ManualPriceStr;
             std::getline(std::cin, ManualPriceStr);
@@ -576,7 +684,6 @@ void TerminalUI::TradeMarketMenu() {
             return;
         }
 
-  
         double AssetBought = SpendAmount / LivePrice;
         CurrentUser->GetCashWallet()[CashIndex].Amount -= SpendAmount;
 
@@ -598,7 +705,7 @@ void TerminalUI::TradeMarketMenu() {
                 }
             }
             if (!FoundAsset) {
-                Crypto NewCrypto(TargetAsset, AssetBought, LivePrice,"Default",false);
+                Crypto NewCrypto(TargetAsset, AssetBought, LivePrice, "Default", false);
                 CurrentUser->GetCryptoWallet().push_back(NewCrypto);
             }
             CurrentUser->SaveUser("Crypto");
@@ -629,11 +736,21 @@ void TerminalUI::TradeMarketMenu() {
         std::cout << Colors::GREEN << "\n[SUCCESS] Bought " << AssetBought << " " << TargetAsset << " for "
             << SpendAmount << " " << BaseFiat << "!\n" << Colors::RESET;
     }
+ 
     else if (Choice == "2") {
         std::string TargetAsset, BaseFiat, SellAmountStr;
 
         std::cout << Colors::BLUE << "Enter the symbol of the asset you want to sell (e.g., BTC or AAPL): " << Colors::RESET;
         std::getline(std::cin, TargetAsset);
+
+        if (!IsCrypto) {
+            std::string ValidatedTarget = Market.GetApiSymbol(TargetAsset);
+            if (ValidatedTarget == "") {
+                Pause();
+                return;
+            }
+            TargetAsset = ValidatedTarget; 
+        }
 
         int AssetIndex = -1;
         double AvailableAsset = 0.0;
@@ -666,11 +783,17 @@ void TerminalUI::TradeMarketMenu() {
         std::cout << Colors::BLUE << "Which fiat/cash do you want to receive? (e.g., USDT): " << Colors::RESET;
         std::getline(std::cin, BaseFiat);
 
-        std::string PairSymbol = TargetAsset + BaseFiat;
-        double LivePrice = API.FetchCurrentPrice(PairSymbol);
-        //If API doesnt return correct(exact - current) price then take it its price from the user.
+        double LivePrice = 0.0;
+        if (IsCrypto) {
+            std::string PairSymbol = TargetAsset + BaseFiat;
+            LivePrice = API.FetchCryptoPrice(PairSymbol);
+        }
+        else {
+            LivePrice = API.FetchStockPrice(TargetAsset);
+        }
+
         if (LivePrice <= 0) {
-            std::cout << Colors::YELLOW << "\n[INFO] API could not fetch live price for " << PairSymbol << "." << Colors::RESET << "\n";
+            std::cout << Colors::YELLOW << "\n[INFO] API could not fetch live price." << Colors::RESET << "\n";
             std::cout << Colors::BLUE << "Please enter the current market price manually (in " << BaseFiat << "): " << Colors::RESET;
             std::string ManualPriceStr;
             std::getline(std::cin, ManualPriceStr);
@@ -723,6 +846,7 @@ void TerminalUI::TradeMarketMenu() {
             }
             CurrentUser->SaveUser("Stock");
         }
+
         bool FoundCash = false;
         for (size_t i = 0; CurrentUser->GetCashWallet().size() > i; i++) {
             if (CurrentUser->GetCashWallet()[i].CurrencyCode == BaseFiat) {
@@ -742,6 +866,69 @@ void TerminalUI::TradeMarketMenu() {
         CurrentUser->SaveUser("Cash");
         std::cout << Colors::GREEN << "\n[SUCCESS] Sold " << SellAmount << " " << TargetAsset << " and gained "
             << FiatGained << " " << BaseFiat << "!\n" << Colors::RESET;
+    }
+
+    Pause();
+}
+void TerminalUI::SettingsMenu() {
+    CleanScreen();
+    std::cout << Colors::CYAN << "=================================\n" << Colors::RESET;
+    std::cout << Colors::YELLOW << "         SETTINGS MENU           \n" << Colors::RESET;
+    std::cout << Colors::CYAN << "=================================\n" << Colors::RESET;
+    std::cout << "Current Display Currency: " << Colors::GREEN << CurrentUser->GetCurrency() << Colors::RESET << "\n\n";
+
+    std::cout << Colors::GREEN << "[1] " << Colors::RESET << "Change Display Currency\n";
+    std::cout << Colors::RED << "[2] " << Colors::RESET << "DANGER: Reset Entire Portfolio\n";
+    std::cout << Colors::GREEN << "[3] " << Colors::RESET << "Back to Main Menu\n";
+    std::cout << Colors::CYAN << "\nSelect an option: " << Colors::RESET;
+
+    std::string Choice = "";
+    std::getline(std::cin, Choice);
+
+    if (Choice == "3") {
+        return;
+    }
+    if (Choice == "1") {
+        std::cout << Colors::BLUE << "\nEnter new display currency (e.g., USD, TRY, EUR): " << Colors::RESET;
+        std::string NewCurrency = "";
+        std::getline(std::cin, NewCurrency);
+
+        if (NewCurrency != "") {
+            for (size_t i = 0; i < NewCurrency.length(); i++) {
+                if (NewCurrency[i] >= 'a' && NewCurrency[i] <= 'z') {
+                    NewCurrency[i] = NewCurrency[i] - 32;
+                }
+            }
+
+            CurrentUser->SetCurrency(NewCurrency);
+            CurrentUser->SaveUser("Settings");
+            std::cout << Colors::GREEN << "\n[SUCCESS] Display currency updated to " << NewCurrency << "!\n" << Colors::RESET;
+        }
+    }
+    else if (Choice == "2") {
+        std::cout << Colors::BG_RED << Colors::WHITE << "\n WARNING: THIS WILL DELETE ALL ASSETS AND CASH IN YOUR ACCOUNT! " << Colors::RESET << "\n";
+        std::cout << Colors::RED << "Are you absolutely sure you want to reset your portfolio? (Type 'YES' to confirm): " << Colors::RESET;
+
+        std::string Confirm = "";
+        std::getline(std::cin, Confirm);
+
+        if (Confirm == "YES") {
+            CurrentUser->GetCryptoWallet().clear();
+            CurrentUser->GetStockWallet().clear();
+            CurrentUser->GetCashWallet().clear();
+
+            CurrentUser->SaveUser("Crypto");
+            CurrentUser->SaveUser("Stock");
+            CurrentUser->SaveUser("Cash");
+
+            std::cout << Colors::GREEN << "\n[SUCCESS] Portfolio has been completely wiped clean! You have $0.00.\n" << Colors::RESET;
+        }
+        else {
+            std::cout << Colors::YELLOW << "\n[INFO] Portfolio reset cancelled. Your assets are safe.\n" << Colors::RESET;
+        }
+    }
+    else {
+        std::cout << Colors::RED << "Invalid choice!" << Colors::RESET << "\n";
     }
 
     Pause();

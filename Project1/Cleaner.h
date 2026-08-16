@@ -4,6 +4,5 @@
 void CleanScreen();
 void CleanBuffer();
 void Pause();
-
 #endif
 #pragma once

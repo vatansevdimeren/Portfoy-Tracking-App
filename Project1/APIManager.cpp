@@ -3,7 +3,7 @@
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
-
+#include <future>
 std::vector<MarketAsset> APIManager::FetchCryptoData() {
 
 	std::vector<MarketAsset> FetchedData;//Here I create a vector to store all coins
@@ -76,7 +76,7 @@ HistoricalData APIManager::FetchHistoricalData(const std::string& Symbol, const 
 	ResultData.ClosedPrice = std::stod(ClosePriceStr);
 
 }
-double APIManager::FetchCurrentPrice(const std::string& Symbol) {
+double APIManager::FetchCryptoPrice(const std::string& Symbol) {
 	std::string URL = "https://api.binance.com/api/v3/ticker/price?symbol=" + Symbol;
 
 	cpr::Response CprResponse = cpr::Get(cpr::Url{ URL });
@@ -98,10 +98,10 @@ double APIManager::FetchCurrentPrice(const std::string& Symbol) {
 }
 double APIManager::GetFiatMultiplierToUSD(const std::string& CurrencyCode) {
 	if (CurrencyCode == "TRY") {
-		return 1.0/FetchCurrentPrice("USDTTRY");
+		return 1.0/FetchCryptoPrice("USDTTRY");
 	}
 	else if (CurrencyCode == "EUR") {
-		return 1.0/FetchCurrentPrice("EURUSDT");
+		return 1.0/FetchCryptoPrice("EURUSDT");
 	}
 	else if(CurrencyCode == "USD"){
 		return 1.0;
@@ -147,4 +147,70 @@ std::vector<MarketAsset> APIManager::FetchWalletCryptoData(const std::vector<std
 	}
 	return MarketData;
 
+}
+std::vector<MarketAsset> APIManager::FetchWalletStockData(const std::vector<std::string>& Symbols) {
+	std::vector<MarketAsset> CurrentWallet;
+
+	if (Symbols.empty()) { return CurrentWallet; }
+
+	std::vector<std::future<MarketAsset>> FuturesList;
+	FuturesList.reserve(Symbols.size());
+
+	for (size_t i = 0; i < Symbols.size(); i++) {
+		FuturesList.push_back(std::async(std::launch::async, [Symbol = Symbols[i]]() {
+			MarketAsset asset;
+			asset.Symbol = Symbol;
+			asset.CurrentPrice = 0.0;
+
+			std::string URL = "https://query1.finance.yahoo.com/v8/finance/chart/" + Symbol;
+			cpr::Response CprResponse = cpr::Get(
+				cpr::Url{ URL },
+				cpr::Header{
+					{"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+					{"Accept", "application/json"}
+				},
+				cpr::VerifySsl(false)
+			);
+			if (CprResponse.status_code == 200) {
+				try {
+					nlohmann::json ParsedData = nlohmann::json::parse(CprResponse.text);
+					asset.CurrentPrice = ParsedData["chart"]["result"][0]["meta"]["regularMarketPrice"];
+				}
+				catch (...) {
+				}
+			}
+			return asset;
+			}));
+	}
+
+	for (size_t i = 0; i < FuturesList.size(); i++) {
+		MarketAsset resultAsset = FuturesList[i].get();
+		if (resultAsset.CurrentPrice > 0.0) {
+			CurrentWallet.push_back(resultAsset);
+		}
+	}
+
+	return CurrentWallet;
+}
+double APIManager::FetchStockPrice(const std::string& Symbol) {
+	std::string URL = "https://query1.finance.yahoo.com/v8/finance/chart/" + Symbol;
+
+	cpr::Response CprResponse = cpr::Get(
+		cpr::Url{ URL },
+		cpr::Header{
+			{"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+			{"Accept", "application/json"}
+		},
+		cpr::VerifySsl(false)
+	);
+
+	if (CprResponse.status_code != 200) { return 0.0; }
+
+	try {
+		nlohmann::json ParsedData = nlohmann::json::parse(CprResponse.text);
+		return ParsedData["chart"]["result"][0]["meta"]["regularMarketPrice"];
+	}
+	catch (...) {
+		return 0.0;
+	}
 }

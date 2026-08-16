@@ -128,6 +128,7 @@
     <ClCompile Include="APIManager.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="Cleaner.cpp" />
+    <ClCompile Include="Convert.cpp" />
     <ClCompile Include="Crypto.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MarketManager.cpp" />
@@ -141,6 +142,7 @@
     <ClInclude Include="Asset.h" />
     <ClInclude Include="Cleaner.h" />
     <ClInclude Include="ConsoleColors.h" />
+    <ClInclude Include="Convert.h" />
     <ClInclude Include="Crypto.h" />
     <ClInclude Include="MarketManager.h" />
     <ClInclude Include="Stock.h" />

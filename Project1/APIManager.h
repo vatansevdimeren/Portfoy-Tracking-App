@@ -14,11 +14,11 @@ class APIManager {
 
 		static std::vector<MarketAsset> FetchWalletCryptoData(const std::vector<std::string>& Symbols);
 
+		static double FetchCryptoPrice(const std::string& Symbol);
 
-		static std::vector<MarketAsset> FetchStockData();
+		static double FetchStockPrice(const std::string& Symbol);
 
-
-		static double FetchCurrentPrice(const std::string& Symbol);
+		static std::vector<MarketAsset> FetchWalletStockData(const std::vector<std::string>& Symbols);
 
 		static double GetFiatMultiplierToUSD(const std::string& CurrencyCode);
 };

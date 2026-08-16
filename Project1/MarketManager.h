@@ -3,6 +3,7 @@
 #define BufferLimit 100
 #include <string>
 #include <vector>
+#include <unordered_map>
 enum class AssetType {
 	Crypto,
 	Stock
@@ -36,6 +37,8 @@ class MarketManager {
 		std::vector<MarketAsset> BufferStockVector;
 		std::vector<std::string> TrackedStockVector;
 
+		std::unordered_map<std::string, std::vector<std::string>> GlobalStockMap;
+
 	public:
 
 		void InitCryptoMarket();
@@ -45,6 +48,10 @@ class MarketManager {
 		double GetPrice(AssetType Type, const std::string Symbol);
 
 		void TrackAsset(AssetType Type, const std::string Symbol);
+
+		void LoadDatabaseFromBinary();
+
+		std::string GetApiSymbol(const std::string& UserInput);
 };
 
 

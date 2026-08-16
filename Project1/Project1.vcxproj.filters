@@ -42,6 +42,9 @@
     <ClCompile Include="TerminalUI.cpp">
       <Filter>Kaynak Dosyaları</Filter>
     </ClCompile>
+    <ClCompile Include="Convert.cpp">
+      <Filter>Kaynak Dosyaları</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleColors.h">
@@ -72,6 +75,9 @@
       <Filter>Üst Bilgi Dosyaları</Filter>
     </ClInclude>
     <ClInclude Include="TerminalUI.h">
+      <Filter>Üst Bilgi Dosyaları</Filter>
+    </ClInclude>
+    <ClInclude Include="Convert.h">
       <Filter>Üst Bilgi Dosyaları</Filter>
     </ClInclude>
   </ItemGroup>

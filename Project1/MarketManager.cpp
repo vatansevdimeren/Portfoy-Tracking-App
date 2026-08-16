@@ -1,9 +1,11 @@
 #include "MarketManager.h"
+#include "ConsoleColors.h"
 #include <iostream>
 #include "Algorithm.h"
 #include "APIManager.h"
 #include "ConsoleColors.h"
 #include <iostream>
+#include <fstream>
 #define BufferMaximumSize 100
 void MarketManager::InitCryptoMarket() {
 	std::vector<MarketAsset> CryptoAssests = APIManager::FetchCryptoData();
@@ -131,4 +133,67 @@ void MarketManager::TrackAsset(AssetType Type, const std::string Symbol) {
 		}
 		TrackedStockVector.push_back(Symbol);
 	}
+}
+void MarketManager::LoadDatabaseFromBinary() {
+	std::fstream Datfile("Database/Symbols.dat", std::ios::binary | std::ios::in);
+
+	if (!Datfile.is_open()) {
+		std::cout << Colors::RED << "Firstly you need to work the convert function and make sure that it is dowlaoanded succesfully!"
+			<< Colors::RESET << std::endl;
+		return;
+	}
+	while (Datfile.peek() != EOF) {
+		unsigned long long int InputSize = 0;
+
+		Datfile.read((char*)&InputSize, sizeof(InputSize));
+		if (Datfile.eof()) break;
+
+		std::string UserInput(InputSize, '\0');
+		Datfile.read(&UserInput[0], InputSize);
+
+		unsigned long long int APISize = 0;
+
+		Datfile.read((char*)&APISize, sizeof(APISize));
+
+		std::string APISymbol(APISize, '\0');
+		Datfile.read(&APISymbol[0], APISize);
+
+		GlobalStockMap[UserInput].push_back(APISymbol);//Here uploading it to mapping system.
+	}
+	Datfile.close();
+}
+std::string MarketManager::GetApiSymbol(const std::string& UserInput) {
+	if (GlobalStockMap.find(UserInput) == GlobalStockMap.end()) {
+		std::cout << "\n[!] ERROR: Asset '" << UserInput << "' not found or not supported in the current database!\n";
+		return "";
+	}
+
+	std::vector<std::string> FoundMarkets = GlobalStockMap[UserInput];
+
+	if (FoundMarkets.size() == 1) {
+		return FoundMarkets[0];
+	}
+	std::cout << "\n[!] Multiple markets found for '" << UserInput << "'. Please select the target market:\n";
+	for (size_t i = 0; i < FoundMarkets.size(); i++) {
+		std::cout << "  " << i + 1 << ". " << FoundMarkets[i] << "\n";
+	}
+
+	int choice = 0;
+	while (true) {
+		std::cout << "Select market (1-" << FoundMarkets.size() << "): ";
+		std::cin >> choice;
+
+		// Input validation to prevent crashes if user enters a letter instead of a number
+		if (std::cin.fail() || choice < 1 || choice > FoundMarkets.size()) {
+			std::cin.clear();
+			std::cin.ignore(10000, '\n');
+			std::cout << "Invalid input! Please enter a valid number from the list.\n";
+		}
+		else {
+			std::cin.ignore(10000, '\n'); // Clear the buffer for future getline() calls in TerminalUI
+			break;
+		}
+	}
+
+	return FoundMarkets[choice - 1];
 }
